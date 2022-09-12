@@ -1,74 +1,249 @@
 // C++ 서버 프로그램
+/*	
+	error1 : "message": ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]
+	- "ISO C++ forbids converting a string constant to ‘char*’ [-Wwrite-strings]"는 경고메시지 (삼각형에 !는 경고메시지)
+
+
+*/
+
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-#include <iostream>
+#include <string.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <iostream>
 
-#define BUF_SIZE 1024
-void error_handling(char *message);
+#include <fstream>
+
+using namespace std;
+
+#define BUF_SIZE 1024			//메시지 최대 길이
+#define MAX_CLNT 10			//최대 동시 접속자 수
+
+void *handle_clnt(void *arg);				//클라이언트 쓰레드용 함수 (함수포인터)
+void send_msg(char *message, int len);		//메시지 전달 함수
+void error_handling(char *message);			//예외처리함수	
+
+int clnt_cnt=0;							//현재 접속중인 클라이언트 수
+int clnt_socks[MAX_CLNT];				 // 클라이언트 최대
+pthread_mutex_t mutx;						// mutex 선언 - 다중 스레드끼리 전역변수 사용시 데이터의 혼선 방지
+
+char menu[100];
+char pwd[10];
+char pwd_save[10];
+char random_pwd[6];
+char ox[10];
+char id[4];
+string id_pwdsave[10];
+char id_pwd[10];
+
 
 int main(int argc, char *argv[])
 {
-    int serv_sock, clnt_sock;
-    char message[BUF_SIZE];
-    int str_len, i;
-	
-    struct sockaddr_in serv_adr;
-    struct sockaddr_in clnt_adr;
-    socklen_t clnt_adr_sz;
-	
-    if(argc!=2) {
-        printf("Usage : %s <port>\n", argv[0]);
-        exit(1);
-    }
-	
-    serv_sock=socket(PF_INET, SOCK_STREAM, 0);   
-    if(serv_sock==-1)
-        error_handling("socket() error");
-	
-    memset(&serv_adr, 0, sizeof(serv_adr));
-    serv_adr.sin_family=AF_INET;
-    serv_adr.sin_addr.s_addr=htonl(INADDR_ANY);
-    serv_adr.sin_port=htons(atoi(argv[1]));
 
-    if(bind(serv_sock, (struct sockaddr*)&serv_adr, sizeof(serv_adr))==-1)
+		
+
+	int serv_sock, clnt_sock;							// 소켓 통신용 서버 소켓과 임시 클라이언트 소켓	
+	char message[BUF_SIZE];
+
+	
+	int  str_len = 0, i=0;
+
+	struct sockaddr_in serv_adr, clnt_adr;				// 서버 주소, 클라이언트 주소 구조체
+	socklen_t clnt_adr_sz;								// 클라이언트 주소 구조체	
+	
+
+
+	// 포트 입력이 안되었을 경우
+	if(argc!=2) {
+		printf("Usage : %s <port>\n", argv[0]);
+		exit(1);
+	}
+	
+	serv_sock=socket(PF_INET, SOCK_STREAM, 0);    
+	if(serv_sock==-1)
+        error_handling("socket() error");
+
+	memset(&serv_adr, 0, sizeof(serv_adr));			//서버 주소 구조체 초기화
+    serv_adr.sin_family=AF_INET;					//인터넷 통신
+    serv_adr.sin_addr.s_addr=htonl(INADDR_ANY);		//현재 ip 이용
+    serv_adr.sin_port=htons(atoi(argv[1]));			//사용자가 지정한 포트 이용
+	
+	//서버 소켓에 주소 할당
+	if(bind(serv_sock, (struct sockaddr*)&serv_adr, sizeof(serv_adr))==-1)
         error_handling("bind() error");
 	
+	//서버 소켓을 서버로 이용
     if(listen(serv_sock, 5)==-1)
         error_handling("listen() error");
 	
-    clnt_adr_sz=sizeof(clnt_adr);
-	
-    // 여러 클라이언트와의 통신을 위해서 반복문 추가
-    for(i=0; i<5; i++)
+
+
+
+	// 수정 ------------------
+	while(1)	
     {
-        // 서버와 각 클라이언트와의 통신을 위해서 생성된 소켓
-        clnt_sock=accept(serv_sock, (struct sockaddr*)&clnt_adr, &clnt_adr_sz);
-        if(clnt_sock==-1)
+    clnt_adr_sz=sizeof(clnt_adr);														//클라이언트 구조체의 크기 불러옴
+		clnt_sock=accept(serv_sock, (struct sockaddr*)&clnt_adr,&clnt_adr_sz);				//클라이언트의 접속을 받기위해 멈춤
+		
+		if(clnt_sock==-1)
             error_handling("accept() error");
         else
-            printf("Connected client %d \n", i+1);
+            printf("Connected client %d \n", i=i+1);
+
 		
+
+
+		while(read(clnt_sock, menu, BUF_SIZE-1)!=0) {
+			
+            cout << "메뉴 :"<<menu << endl;
+		
+	
+
+			switch((char)*menu){
+				
+				case '1':	//암호 생성
+					read(clnt_sock, pwd, BUF_SIZE-1);
+					for(i=0;i<10;i++){
+						pwd_save[i] = pwd[i];
+					}				
+					cout << "암호 : "<< pwd_save << "저장 완료"<<endl;
+					*pwd = NULL;
+					break;
+				case '2':	//암호 확인
+					cout << pwd_save <<endl;
+					cout << pwd <<endl;
+					read(clnt_sock, pwd, BUF_SIZE-1);
+					if(pwd_save==pwd){
+						ox[0]=1;
+						write(clnt_sock, ox, str_len);
+						cout << " 암호 일치" <<endl;
+					}else{
+						ox[0]=0;
+						write(clnt_sock, ox, str_len);
+						cout << " 암호 불일치" <<endl;
+					}
+					break;
+				case '4':	//개별 비밀번호 생성
+					read(clnt_sock,id,BUF_SIZE-1);
+					cout << "id : ";
+					*id_pwd=NULL;
+					switch ((char) *id)
+					{
+					case '1':
+						//if(id_pwdsave[0]==""){
+						read(clnt_sock,id_pwd,BUF_SIZE-1);
+						id_pwdsave[0] = id_pwd;
+						cout<<id<<" pwd : "+id_pwdsave[0]<<"저장"<<endl;
+						*id_pwd = NULL;
+						
+						break;
+					case '2':
+						read(clnt_sock,id_pwd,BUF_SIZE-1);
+						id_pwdsave[1] = id_pwd;
+						cout<<id<<" pwd : "+id_pwdsave[1]<<"저장"<<endl;
+						*id_pwd = NULL;
+						break;
+					
+					case '3':
+						read(clnt_sock,id_pwd,BUF_SIZE-1);
+						id_pwdsave[2] = id_pwd;
+						cout<<id<<" pwd : "+id_pwdsave[2]<<"저장"<<endl;
+						*id_pwd = NULL;
+						break;
+					
+					case '4':
+						read(clnt_sock,id_pwd,BUF_SIZE-1);
+						id_pwdsave[3] = id_pwd;
+						cout<<id<<" pwd : "+id_pwdsave[3]<<"저장"<<endl;
+						*id_pwd = NULL;
+						break;
+					}
+					break;
+				case '5':	//개별 비밀번호 생성
+					read(clnt_sock,id,BUF_SIZE-1);
+					cout << "id : ";
+					*id_pwd=NULL;
+					*ox=NULL;
+					switch ((char) *id)
+					{
+						case '1':
+							//if(id_pwdsave[0]==""){
+							read(clnt_sock,id_pwd,BUF_SIZE-1);
+							if(id_pwdsave[0]==id_pwd){
+								cout<<id<<" 로그인 성공"<<endl;
+								*ox='0';
+								cout<<"ox "<<*ox<<endl;
+								cout<<"ox "<<ox<<endl;
+								write(clnt_sock, ox, str_len);
+								cout<<"전송 완료"<<endl;
+							}else{
+								cout<<id<<" 로그인 실패"<<endl;
+								ox[0]=0;
+								cout<<"ox "<<ox[0]<<endl;
+								write(clnt_sock, ox, str_len);
+							}
+							*id_pwd = NULL;
+							
+							break;
+
+					
+					
+					}
+					break;
+				case '9': 
+					for(i=0;i<5;i++){
+						if(id_pwdsave[i]==""){
+							cout<<"값 없음"<<endl;
+						}else
+						{
+							cout<<"id: "<<i+1<<" 암호: "<<id_pwdsave[i]<<endl;
+						}
+					}
+					break;
+				default :
+				
+					break;
+			}
+			//  write(clnt_sock, pwd, str_len);
+			// read(clnt_sock, pwd, BUF_SIZE);
+			// cout << "암호 : "<< pwd << "저장 완료"<<endl;
+        }
+
+
+		
+		/*
         // 클라이언트로부터 전송된 데이터를 수신한다.
         // 그리고 다시 클라이언트에게 받았던 데이터를 송신한다.
         while((str_len=read(clnt_sock, message, BUF_SIZE))!=0) {
             write(clnt_sock, message, str_len);
             std::cout << message << std::endl;
         }
+		*/
 
         close(clnt_sock);
     }
 
-    close(serv_sock);
-    return 0;
+	close(serv_sock);						//쓰레드가 끝나면 소켓을 닫아준다 
+	return 0;
 }
 
+
+
+
+
+//예외처리 함수
 void error_handling(char *message)
 {
-    fputs(message, stderr);
-    fputc('\n', stderr);
-    exit(1);
+	fputs(message, stderr);
+	fputc('\n', stderr);
+	exit(1);
 }
+
+
+
+//출입자 조회
