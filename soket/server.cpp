@@ -37,7 +37,7 @@ char pwd[10];
 char pwd_save[10];
 char random_pwd[6];
 char ox[10];
-char id[4];
+char id[10];
 string id_pwdsave[10];
 char id_pwd[10];
 
@@ -128,6 +128,7 @@ int main(int argc, char *argv[])
 						cout << " 암호 불일치" <<endl;
 					}
 					break;
+
 				case '4':	//개별 비밀번호 생성
 					read(clnt_sock,id,BUF_SIZE-1);
 					cout << "id : ";
@@ -164,7 +165,7 @@ int main(int argc, char *argv[])
 						break;
 					}
 					break;
-				case '5':	//개별 비밀번호 생성
+				case '5':	//개별 비밀번호 확인
 					read(clnt_sock,id,BUF_SIZE-1);
 					cout << "id : ";
 					*id_pwd=NULL;
@@ -175,28 +176,31 @@ int main(int argc, char *argv[])
 							//if(id_pwdsave[0]==""){
 							read(clnt_sock,id_pwd,BUF_SIZE-1);
 							if(id_pwdsave[0]==id_pwd){
-								cout<<id<<" 로그인 성공"<<endl;
-								*ox='0';
-								cout<<"ox "<<*ox<<endl;
+								cout<<id<<" 로그인tle"<<endl;
+								*ox='1';
 								cout<<"ox "<<ox<<endl;
-								write(clnt_sock, ox, str_len);
+
+								write(clnt_sock, ox, strlen(ox));
 								cout<<"전송 완료"<<endl;
 							}else{
 								cout<<id<<" 로그인 실패"<<endl;
-								ox[0]=0;
-								cout<<"ox "<<ox[0]<<endl;
-								write(clnt_sock, ox, str_len);
+								*ox='0';
+								cout<<"ox "<<ox<<endl;
+
+								write(clnt_sock, ox, strlen(ox));
+								cout<<"전송 완료"<<endl;
 							}
 							*id_pwd = NULL;
 							
 							break;
-
-					
 					
 					}
 					break;
+				
+				case '8': //로그 기록확인
+
 				case '9': 
-					for(i=0;i<5;i++){
+					for(i=0;i<4;i++){
 						if(id_pwdsave[i]==""){
 							cout<<"값 없음"<<endl;
 						}else
