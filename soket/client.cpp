@@ -23,6 +23,7 @@ char ox[10];
 char id[10];
 char id_pwd[10];
 
+
 string str;
 int str_len;
 struct sockaddr_in serv_adr;
@@ -105,23 +106,32 @@ int main(int argc, char *argv[])
             fputs("암호 입력 ", stdout);
             fgets(id_pwd, BUF_SIZE, stdin);
             write(sock,id_pwd,strlen(id_pwd));
-            sleep(3);
-            cout<<"대기완료"<<endl; 
-            int n = read(sock, ox, BUF_SIZE-1);
-            cout<<"ox: "<<n<<endl;
+            
 
-            cout<<"ox: "<<*ox<<endl;
-            if(*ox=='0'){
+
+
+
+            str_len=read(sock, ox, BUF_SIZE-1);
+            // 문자열의 끝을 알리기 위해서 추가
+            ox[str_len]=0;
+
+            //cout<<"ox: "<<ox<<endl;  신호 확인용
+
+            if(*ox=='1'){
                 cout<<"로그인 성공"<<endl;
             }else{
                 cout<<"로그인 실패"<<endl;
             }
+            break;
+
         case '9': 
             cout<< "비밀번호 확인 메뉴"<<endl;
             break;
 
+        
         }
-        }
+        
+    }
 
          
 	
