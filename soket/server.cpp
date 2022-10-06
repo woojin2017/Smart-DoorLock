@@ -6,6 +6,7 @@
 
 */
 
+#include <mysql/mysql.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,14 +39,26 @@ char pwd_save[10];
 char random_pwd[6];
 char ox[10];
 char id[10];
-string id_pwdsave[10];
+string id_pwdsave[5];
+char idid[5];
+string id_save[5];
 char id_pwd[10];
 
 
 int main(int argc, char *argv[])
 {
 
-		
+	MYSQL* mysql;
+	char sql[1024];
+    MYSQL_RES* result;
+    MYSQL_ROW row;
+    char str1[1024], str2[1024];
+	char* consult;
+    char* sentence;
+    string sentence_aux;
+	char a[10];
+	char b[10];
+
 
 	int serv_sock, clnt_sock;							// 소켓 통신용 서버 소켓과 임시 클라이언트 소켓	
 	char message[BUF_SIZE];
@@ -56,6 +69,14 @@ int main(int argc, char *argv[])
 	struct sockaddr_in serv_adr, clnt_adr;				// 서버 주소, 클라이언트 주소 구조체
 	socklen_t clnt_adr_sz;								// 클라이언트 주소 구조체	
 	
+
+	//mariadb sql connect
+	 mysql_init(mysql);
+    if(!mysql_real_connect(mysql, "127.0.0.1", "root","1234", "test" ,3306, (char *)NULL, 0))
+    {
+        printf("%s\n",mysql_error(mysql));
+        exit(1);
+    }
 
 
 	// 포트 입력이 안되었을 경우
@@ -106,14 +127,28 @@ int main(int argc, char *argv[])
 
 			switch((char)*menu){
 				
-				case '1':	//암호 생성
-					read(clnt_sock, pwd, BUF_SIZE-1);
-					for(i=0;i<10;i++){
-						pwd_save[i] = pwd[i];
-					}				
-					cout << "암호 : "<< pwd_save << "저장 완료"<<endl;
-					*pwd = NULL;
+				case '1':	//개별 비밀번호 생성
+					read(clnt_sock,id,BUF_SIZE-1);
+					read(clnt_sock,id_pwd,BUF_SIZE-1);
+					cout << "id : " << id << "pwd: " <<id_pwd <<endl;
+						
+						//if(id_pwdsave[0]==""){
+			
+						//*id_pwd;
+					sentence_aux = "INSERT INTO testdb(id, pwd) VALUES( '%s','%s')";
+					sentence = new char[sentence_aux.length()+1];
+					strcpy(sentence,sentence_aux.c_str());
+
+					consult = new char[strlen(sentence) + sizeof(int) + strlen(id)+ strlen(id_pwd) + sizeof(float)];
+					sprintf(consult,sentence,id,id_pwd);
+
+					
+					mysql_query(mysql,consult);
+					mysql_store_result(mysql);
+
+					cout<<" endl"<<endl;
 					break;
+					
 				case '2':	//암호 확인
 					cout << pwd_save <<endl;
 					cout << pwd <<endl;
@@ -140,7 +175,14 @@ int main(int argc, char *argv[])
 						read(clnt_sock,id_pwd,BUF_SIZE-1);
 						id_pwdsave[0] = id_pwd;
 						cout<<id<<" pwd : "+id_pwdsave[0]<<"저장"<<endl;
+						
+						strcpy(sql, "INSERT INTO testdb VALUES('%s', '%s',a,b)");
+						if(mysql_query(mysql, sql) != 0){
+      					  printf("inster error");
+  						  }			
 						*id_pwd = NULL;
+
+						cout<<"endl"<<endl;
 						
 						break;
 					case '2':
@@ -172,7 +214,8 @@ int main(int argc, char *argv[])
 					*ox=NULL;
 					switch ((char) *id)
 					{
-						case '1':
+						case '1'
+                        :
 							//if(id_pwdsave[0]==""){
 							read(clnt_sock,id_pwd,BUF_SIZE-1);
 							if(id_pwdsave[0]==id_pwd){
@@ -248,6 +291,3 @@ void error_handling(char *message)
 	exit(1);
 }
 
-
-
-//출입자 조회
