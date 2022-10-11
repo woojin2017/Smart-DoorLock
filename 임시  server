@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <iostream>
+#include<cstdlib>
+#include<ctime>
 
 #include <fstream>
 
@@ -29,13 +31,18 @@ char menu[100];
 char pwd[10];
 char pwd_save[10];
 char random_pwd[6];
-char ox[10];
+
 char id[10];
 string id_pwdsave[5];
 char idid[5];
 string id_save[5];
 char id_pwd[10];
 
+void finish_with_error(MYSQL *mysql){
+						fprintf(stderr, "%s\n", mysql_error(mysql));
+						mysql_close(mysql);
+						exit(1);
+					}
 
 int main(int argc, char *argv[])
 {
@@ -50,7 +57,11 @@ int main(int argc, char *argv[])
     string sentence_aux;
 	char a[10];
 	char b[10];
-
+	int num1, num2, num3, num4;
+	char num[4];
+	char ran_pwd[4];
+	int num_fields;
+	char ox[10];
 
 	int serv_sock, clnt_sock;							// 소켓 통신용 서버 소켓과 임시 클라이언트 소켓	
 	char message[BUF_SIZE];
@@ -152,11 +163,11 @@ int main(int argc, char *argv[])
 
 				case '2':	//암호 확인
 
-					read(clnt_sock, pwd, BUF_SIZE-1);
+					read(clnt_sock, id, BUF_SIZE-1);
 					read(clnt_sock,id_pwd,BUF_SIZE-1);
 
 					
-					sentence_aux = "select id, pwd from testdb ";
+					sentence_aux = "select id, pwd from testdb where id = '%s' ";
 					sentence = new char[sentence_aux.length()+1];
 					strcpy(sentence,sentence_aux.c_str());
 
@@ -164,7 +175,7 @@ int main(int argc, char *argv[])
 					sprintf(consult,sentence,id);
 
 
-					mysql_query(mysql,consult);
+					//mysql_query(mysql,consult);
 					
 				/*
 				if(mysql_ping(mysql))
@@ -172,31 +183,114 @@ int main(int argc, char *argv[])
                     cout<<"ERROR: Imposible to connect. " <<endl;
                     cout << mysql_error(mysql)<<endl;
                 }
+				*/
 				if(mysql_query(mysql,consult))
                 {
                     cout <<"ERROR:  " <<mysql_error(mysql)<<endl;
 					*ox='0';
 					cout<<"ox "<<ox<<endl;
 					write(clnt_sock, ox, strlen(ox));
+					
                 }
                 else
                 {
                     cout << "BBB " <<endl;
-
-						*ox='1';
-					cout<<"ox "<<ox<<endl;
-					write(clnt_sock, ox, strlen(ox));
                 }
+				*ox='0';
+				cout<<"ox "<<ox<<endl;
 					
-				*/
+				
 
 					//mysql_store_result(mysql);
-					
-					
+					result = mysql_store_result(mysql);
+						if(result == NULL)
+						{
+							finish_with_error(mysql);
+						}
 
+						num_fields = mysql_num_fields(result);
 
+						while(row =mysql_fetch_row(result))
+						{
+							for(i=0; i<num_fields; i++)
+							{
+								printf("%s   ", row[i] ? row[i] : "MULL");
+							}
+							printf("\n");
+							
+							*ox='1';
+							cout<<"ox "<<ox<<endl;
+						}
+
+						mysql_free_result(result);
+						
+						write(clnt_sock, ox, strlen(ox));
 					cout<<" endl"<<endl;
 					break;
+				case '3':
+
+					cout<<ran_pwd<<endl;
+					for(i=0;i<4;i++){
+						ran_pwd[i]='0';
+					}
+					cout<<ran_pwd<<endl;
+
+					num1=rand()%10;
+					num2=rand()%10;
+					num3=rand()%10;
+					num4=rand()%10;
+					
+					num[0]=num1+'0';
+					num[1]=num2+'0';
+					num[2]=num3+'0';
+					num[3]=num4+'0';
+
+					cout<< num[0]<<endl;
+					cout<< num[1]<<endl;
+					cout<< num[2]<<endl;
+					cout<< num[3]<<endl;
+
+					for(i=0;i<4;i++){
+						ran_pwd[i]=num[i];
+					}
+					cout<<ran_pwd<<endl;
+
+					cout<<"================"<<endl;
+
+				/*
+					sentence_aux = "INSERT INTO random(ran_pwd) VALUES( '%s')";
+					
+					sentence = new char[sentence_aux.length()+1];
+					strcpy(sentence,sentence_aux.c_str());
+
+					consult = new char[strlen(sentence) + sizeof(int) + strlen(ran_pwd) + sizeof(float)];
+					sprintf(consult,sentence,ran_pwd);
+
+
+					
+					mysql_query(mysql,consult);
+					mysql_store_result(mysql);
+					
+					*ox='1';
+					cout<<"ox "<<ox<<endl;
+					write(clnt_sock, ox, strlen(ox));
+					write(clnt_sock, ran_pwd, BUF_SIZE);
+
+					cout<<" endl"<<endl;
+					*/
+					break;
+
+
+
+
+
+
+
+
+
+
+
+
 				case '4':	//개별 비밀번호 생성
 					read(clnt_sock,id,BUF_SIZE-1);
 					cout << "id : ";
@@ -311,3 +405,16 @@ int main(int argc, char *argv[])
 	close(serv_sock);						//쓰레드가 끝나면 소켓을 닫아준다 
 	return 0;
 }
+
+
+
+
+
+//예외처리 함수
+void error_handling(char *message)
+{
+	fputs(message, stderr);
+	fputc('\n', stderr);
+	exit(1);
+}
+
