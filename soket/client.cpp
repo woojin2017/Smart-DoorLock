@@ -1,4 +1,7 @@
 // C++ TCP 클라이언트 프로그램
+
+#include <mysql/mysql.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,19 +12,54 @@
 #include <fstream>
 
 
+
+#include <fstream>
+
+
 using namespace std;
 
 #define BUF_SIZE 1024
-void error_handling(char *message);
+
+char message[BUF_SIZE];
+
+void finish_with_error(MYSQL *mysql){
+						fprintf(stderr, "%s\n", mysql_error(mysql));
+						mysql_close(mysql);
+						exit(1);
+					}
+
+
+int main(int argc, char *argv[])
+{
+
+    void error_handling(char *message);
 void menu_num(int menu);
 
+    MYSQL* mysql;
+	char sql[1024];
+    MYSQL_RES* result;
+    MYSQL_ROW row;
+    char str1[1024], str2[1024];
+	char* consult;
+    char* sentence;
+    string sentence_aux;
+	char a[10];
+	char b[10];
+	int num1, num2, num3, num4;
+	char num[100];
+	char ran_pwd[4];
+	int num_fields;
+    int i;
+
+
 int sock;
-char message[BUF_SIZE];
 char menu[100];
 char pwd[10];
 char ox[10];
 char id[10];
 char id_pwd[10];
+char time[100];
+int n1=0;
 
 
 string str;
@@ -29,8 +67,12 @@ int str_len;
 struct sockaddr_in serv_adr;
 
 
-int main(int argc, char *argv[])
-{
+    mysql_init(mysql);
+    if(!mysql_real_connect(mysql, "127.0.0.1", "root","1234", "test" ,3306, (char *)NULL, 0))
+    {
+        printf("%s\n",mysql_error(mysql));
+        exit(1);
+    }
 
     if(argc!=3) {
         printf("Usage : %s <IP> <port>\n", argv[0]);
@@ -63,7 +105,9 @@ int main(int argc, char *argv[])
         // write(sock,menu,strlen(menu));
         // str_len=read(sock,menu,BUF_SIZE-1);
         while(1){
-        fputs("메뉴 선택: ", stdout);
+        fputs(" 1.계정 생성 \n 2. 로그인 \n 3.랜덤 비밀번호 생성   \n 4.로그 기록 보기 \n 5.계정 정보 보기 \n메뉴 선택:", stdout);
+
+
         
         fgets(menu, BUF_SIZE, stdin);
         if(!strcmp(menu,"q\n") || !strcmp(menu,"Q\n")|| !strcmp(menu,"0\n"))
@@ -75,22 +119,47 @@ int main(int argc, char *argv[])
         {
         
         case '1':
-            fputs("암호 설정 ", stdout);
-            fgets(pwd, BUF_SIZE, stdin);
-            write(sock,pwd,strlen(pwd));
+            fputs("id ", stdout);
+            fgets(id, BUF_SIZE, stdin);
+            write(sock,id,strlen(id));
+            fputs("암호 입력 ", stdout);
+            fgets(id_pwd, BUF_SIZE, stdin);
+            write(sock,id_pwd,strlen(id_pwd));
+
+            read(sock, ox, BUF_SIZE-1);
+            // 문자열의 끝을 알리기 위해서 추가
+          
+
+            //cout<<"ox: "<<ox<<endl;  신호 확인용
+
+            if(*ox=='1'){
+                cout<<"Completion "<<endl;
+            }
+
             break;
         case '2':
-            fputs("암호 확인 ", stdout);
-            fgets(pwd, BUF_SIZE, stdin);
-            write(sock,pwd,strlen(pwd));
+
+            fputs("id ", stdout);
+            fgets(id, BUF_SIZE, stdin);
+            write(sock,id,strlen(id));
+            fputs("암호 입력 ", stdout);
+            fgets(id_pwd, BUF_SIZE, stdin);
+            write(sock,id_pwd,strlen(id_pwd));
+            
             read(sock, ox, BUF_SIZE-1);
-            cout << ox << endl;
-            if(ox[0]==1){
-                cout << "암호 일치" <<endl;
+            if(*ox=='1'){
+                cout<<"로그인 성공  "<<ox<<endl;
             }else{
-                cout << "암호 불일치" <<endl;
+                cout<<"로그인 실패 "<<ox<<endl;
             }
+
+           
             break;
+        case '3':
+            read(sock, ran_pwd, BUF_SIZE-1);
+            cout<<"랜덤 비밀번호: "<<ran_pwd<<endl;
+            break;
+
         case '4':   //id별 암호 생성
             fputs("id ", stdout);
             fgets(id, BUF_SIZE, stdin);
@@ -98,7 +167,69 @@ int main(int argc, char *argv[])
             fputs("암호 입력 ", stdout);
             fgets(id_pwd, BUF_SIZE, stdin);
             write(sock,id_pwd,strlen(id_pwd));
+
+            sentence_aux = "select join_time from logdata where id = '%s' ";
+			sentence = new char[sentence_aux.length()+1];
+			strcpy(sentence,sentence_aux.c_str());
+
+			consult = new char[strlen(sentence) + sizeof(int) + strlen(id)+ sizeof(float)];
+			sprintf(consult,sentence,id);
+
+
+
+            if(mysql_query(mysql,consult))
+                {
+                    cout <<"ERROR:  " <<mysql_error(mysql)<<endl;
+					
+					
+                }
+                else
+                {
+                    //cout << " " <<endl;
+                }
+
+					
+				
+					
+				
+
+					//mysql_store_result(mysql);
+					result = mysql_store_result(mysql);
+						if(result == NULL)
+						{
+							finish_with_error(mysql);
+						}
+
+						num_fields = mysql_num_fields(result);
+
+						while(row =mysql_fetch_row(result))
+						{
+							for(i=0; i<num_fields; i++)
+							{
+							    printf("%s   ", row[i] ? row[i] : "MULL");
+								
+								
+							}
+							printf("\n");
+							
+						}
+
+						mysql_free_result(result);
+					cout<<" endl"<<endl;
+               
+
+            
+
             break;
+
+
+
+
+
+
+
+
+            
         case '5':   //암호 판별
             fputs("로그인 id ", stdout);
             fgets(id, BUF_SIZE, stdin);
@@ -130,6 +261,7 @@ int main(int argc, char *argv[])
 
         
         }
+        cout<<"\n"<<endl;
         
     }
 
