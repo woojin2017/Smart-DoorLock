@@ -230,29 +230,33 @@ struct sockaddr_in serv_adr;
 
 
             
-        case '5':   //암호 판별
-            fputs("로그인 id ", stdout);
-            fgets(id, BUF_SIZE, stdin);
-            write(sock,id,strlen(id));
-            fputs("암호 입력 ", stdout);
-            fgets(id_pwd, BUF_SIZE, stdin);
-            write(sock,id_pwd,strlen(id_pwd));
-            
+        case '5':   
+            if(mysql_query(mysql,"SELECT * FROM testdb"))
+                {
+                    finish_with_error(mysql);
+                }
 
+                result = mysql_store_result(mysql);
+                if(result == NULL)
+                {
+                    finish_with_error(mysql);
+                }
 
+                num_fields = mysql_num_fields(result);
 
+                while(row =mysql_fetch_row(result))
+                {
+		for(int i=0; i<num_fields; i++)
+		{
+			printf("%s   ", row[i] ? row[i] : "MULL");
+		}
+		printf("\n");
+	}
 
-            str_len=read(sock, ox, BUF_SIZE-1);
-            // 문자열의 끝을 알리기 위해서 추가
-            ox[str_len]=0;
+	mysql_free_result(result);
 
-            //cout<<"ox: "<<ox<<endl;  신호 확인용
-
-            if(*ox=='1'){
-                cout<<"로그인 성공"<<endl;
-            }else{
-                cout<<"로그인 실패"<<endl;
-            }
+            cout << "endl" <<endl;
+                    
             break;
 
         case '9': 
