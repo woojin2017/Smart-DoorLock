@@ -10,6 +10,7 @@
 
 #include <mysql/mysql.h>
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -19,6 +20,8 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <iostream>
+#include<cstdlib>
+#include<ctime>
 
 #include <fstream>
 
@@ -39,13 +42,18 @@ char menu[100];
 char pwd[10];
 char pwd_save[10];
 char random_pwd[6];
-char ox[10];
+
 char id[10];
 string id_pwdsave[5];
 char idid[5];
 string id_save[5];
 char id_pwd[10];
 
+void finish_with_error(MYSQL *mysql){
+						fprintf(stderr, "%s\n", mysql_error(mysql));
+						mysql_close(mysql);
+						exit(1);
+					}
 
 int main(int argc, char *argv[])
 {
@@ -60,7 +68,12 @@ int main(int argc, char *argv[])
     string sentence_aux;
 	char a[10];
 	char b[10];
-
+	int num1, num2, num3, num4;
+	char num[100];
+	char ran_pwd[4];
+	int num_fields;
+	char ox[10];
+	char time[100];
 
 	int serv_sock, clnt_sock;							// 소켓 통신용 서버 소켓과 임시 클라이언트 소켓	
 	char message[BUF_SIZE];
@@ -147,68 +160,299 @@ int main(int argc, char *argv[])
 					
 					mysql_query(mysql,consult);
 					mysql_store_result(mysql);
+					
+					*ox='1';
+					cout<<"ox "<<ox<<endl;
+					write(clnt_sock, ox, strlen(ox));
 
 					cout<<" endl"<<endl;
 					break;
 					
+
+
+
+
+
 				case '2':	//암호 확인
-					cout << pwd_save <<endl;
-					cout << pwd <<endl;
-					read(clnt_sock, pwd, BUF_SIZE-1);
-					if(pwd_save==pwd){
-						ox[0]=1;
-						write(clnt_sock, ox, str_len);
-						cout << " 암호 일치" <<endl;
-					}else{
-						ox[0]=0;
-						write(clnt_sock, ox, str_len);
-						cout << " 암호 불일치" <<endl;
+
+					read(clnt_sock, id, BUF_SIZE-1);
+					read(clnt_sock,id_pwd,BUF_SIZE-1);
+
+					
+					sentence_aux = "select id, pwd from testdb where id = '%s' ";
+					sentence = new char[sentence_aux.length()+1];
+					strcpy(sentence,sentence_aux.c_str());
+
+					consult = new char[strlen(sentence) + sizeof(int) + strlen(id)+ sizeof(float)];
+					sprintf(consult,sentence,id);
+
+
+					//mysql_query(mysql,consult);
+					
+				/*
+				if(mysql_ping(mysql))
+                {
+                    cout<<"ERROR: Imposible to connect. " <<endl;
+                    cout << mysql_error(mysql)<<endl;
+                }
+				*/
+				if(mysql_query(mysql,consult))
+                {
+                    cout <<"ERROR:  " <<mysql_error(mysql)<<endl;
+					*ox='0';
+					cout<<"ox "<<ox<<endl;
+					write(clnt_sock, ox, strlen(ox));
+					
+                }
+                else
+                {
+                    //cout << " " <<endl;
+                }
+				*ox='0';
+				cout<<"ox "<<ox<<endl;
+					
+				
+
+					//mysql_store_result(mysql);
+					result = mysql_store_result(mysql);
+						if(result == NULL)
+						{
+							finish_with_error(mysql);
+						}
+
+						num_fields = mysql_num_fields(result);
+
+						while(row =mysql_fetch_row(result))
+						{
+							for(i=0; i<num_fields; i++)
+							{
+								printf("%s   ", row[i] ? row[i] : "MULL");
+							}
+							printf("\n");
+							
+							*ox='1';
+							cout<<"ox "<<ox<<endl;
+
+
+					sentence_aux = "INSERT INTO logdata(id, join_time) VALUES( '%s', now())";
+					sentence = new char[sentence_aux.length()+1];
+					strcpy(sentence,sentence_aux.c_str());
+
+					consult = new char[strlen(sentence) + sizeof(int) +  strlen(id) + sizeof(float)];
+					sprintf(consult,sentence,id);
+
+					
+
+						
+						mysql_query(mysql,consult);
+						mysql_store_result(mysql);
+
+
+
+						}
+
+						mysql_free_result(result);
+						
+						write(clnt_sock, ox, strlen(ox));
+					cout<<" endl"<<endl;
+					break;
+				case '3':
+
+					cout<<ran_pwd<<endl;
+					for(i=0;i<4;i++){
+						ran_pwd[i]='0';
 					}
+					cout<<ran_pwd<<endl;
+
+					num1=rand()%10;
+					num2=rand()%10;
+					num3=rand()%10;
+					num4=rand()%10;
+					
+					num[0]=num1+'0';
+					num[1]=num2+'0';
+					num[2]=num3+'0';
+					num[3]=num4+'0';
+
+					cout<< num[0]<<endl;
+					cout<< num[1]<<endl;
+					cout<< num[2]<<endl;
+					cout<< num[3]<<endl;
+
+					for(i=0;i<4;i++){
+						ran_pwd[i]=num[i];
+					}
+					cout<<ran_pwd<<endl;
+
+					cout<<"================"<<endl;
+
+
+
+
+
+
+
+
+
+
+
+					sentence_aux = "INSERT INTO random() VALUES( '%s')";
+					sentence = new char[sentence_aux.length()+1];
+					strcpy(sentence,sentence_aux.c_str());
+
+					consult = new char[strlen(sentence) + sizeof(int) + strlen(id)+ strlen(ran_pwd) + sizeof(float)];
+					sprintf(consult,sentence,ran_pwd);
+
+					
+					mysql_query(mysql,consult);
+					mysql_store_result(mysql);
+					
+					
+					write(clnt_sock, ran_pwd, strlen(ran_pwd));
+
+					cout<<" endl"<<endl;
+				
+
+				/*
+					sentence_aux = "INSERT INTO random(ran_pwd) VALUES( '%s')";
+					
+					sentence = new char[sentence_aux.length()+1];
+					strcpy(sentence,sentence_aux.c_str());
+
+					consult = new char[strlen(sentence) + sizeof(int) + strlen(ran_pwd) + sizeof(float)];
+					sprintf(consult,sentence,ran_pwd);
+
+
+					
+					mysql_query(mysql,consult);
+					mysql_store_result(mysql);
+					
+					*ox='1';
+					cout<<"ox "<<ox<<endl;
+					write(clnt_sock, ox, strlen(ox));
+					write(clnt_sock, ran_pwd, BUF_SIZE);
+
+					cout<<" endl"<<endl;
+					*/
 					break;
 
-				case '4':	//개별 비밀번호 생성
-					read(clnt_sock,id,BUF_SIZE-1);
-					cout << "id : ";
-					*id_pwd=NULL;
-					switch ((char) *id)
-					{
-					case '1':
-						//if(id_pwdsave[0]==""){
-						read(clnt_sock,id_pwd,BUF_SIZE-1);
-						id_pwdsave[0] = id_pwd;
-						cout<<id<<" pwd : "+id_pwdsave[0]<<"저장"<<endl;
-						
-						strcpy(sql, "INSERT INTO testdb VALUES('%s', '%s',a,b)");
-						if(mysql_query(mysql, sql) != 0){
-      					  printf("inster error");
-  						  }			
-						*id_pwd = NULL;
 
-						cout<<"endl"<<endl;
-						
-						break;
-					case '2':
-						read(clnt_sock,id_pwd,BUF_SIZE-1);
-						id_pwdsave[1] = id_pwd;
-						cout<<id<<" pwd : "+id_pwdsave[1]<<"저장"<<endl;
-						*id_pwd = NULL;
-						break;
+
+
+
+
+
+
+
+
+
+
+				case '4':	//
+					read(clnt_sock, id, BUF_SIZE-1);
+					read(clnt_sock,id_pwd,BUF_SIZE-1);
+
 					
-					case '3':
-						read(clnt_sock,id_pwd,BUF_SIZE-1);
-						id_pwdsave[2] = id_pwd;
-						cout<<id<<" pwd : "+id_pwdsave[2]<<"저장"<<endl;
-						*id_pwd = NULL;
-						break;
+					sentence_aux = "select join_time from logdata where id = '%s' ";
+					sentence = new char[sentence_aux.length()+1];
+					strcpy(sentence,sentence_aux.c_str());
+
+					consult = new char[strlen(sentence) + sizeof(int) + strlen(id)+ sizeof(float)];
+					sprintf(consult,sentence,id);
+
+
+					//mysql_query(mysql,consult);
 					
-					case '4':
-						read(clnt_sock,id_pwd,BUF_SIZE-1);
-						id_pwdsave[3] = id_pwd;
-						cout<<id<<" pwd : "+id_pwdsave[3]<<"저장"<<endl;
-						*id_pwd = NULL;
-						break;
-					}
+				/*
+				if(mysql_ping(mysql))
+                {
+                    cout<<"ERROR: Imposible to connect. " <<endl;
+                    cout << mysql_error(mysql)<<endl;
+                }
+				*/
+				if(mysql_query(mysql,consult))
+                {
+                    cout <<"ERROR:  " <<mysql_error(mysql)<<endl;
+					*ox='0';
+					cout<<"ox "<<ox<<endl;
+					write(clnt_sock, ox, strlen(ox));
+					
+                }
+                else
+                {
+                    //cout << " " <<endl;
+                }
+				*ox='0';
+				cout<<"ox "<<ox<<endl;
+					
+				
+
+					//mysql_store_result(mysql);
+					result = mysql_store_result(mysql);
+						if(result == NULL)
+						{
+							finish_with_error(mysql);
+						}
+
+						num_fields = mysql_num_fields(result);
+
+						while(row =mysql_fetch_row(result))
+						{
+							for(i=0; i<num_fields; i++)
+							{
+								*time = printf("%s   ", row[i] ? row[i] : "MULL");
+								
+								write(clnt_sock, time, strlen(time));
+							}
+							printf("\n");
+							
+							*ox='1';
+							cout<<"ox "<<ox<<endl;
+						}
+
+						mysql_free_result(result);
+						write(clnt_sock, ox, strlen(ox));
+					cout<<" endl"<<endl;
+
 					break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 				case '5':	//개별 비밀번호 확인
 					read(clnt_sock,id,BUF_SIZE-1);
 					cout << "id : ";
