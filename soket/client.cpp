@@ -1,5 +1,4 @@
 // C++ TCP 클라이언트 프로그램
-
 #include <mysql/mysql.h>
 
 #include <stdio.h>
@@ -13,7 +12,6 @@
 
 
 
-#include <fstream>
 
 
 using namespace std;
@@ -21,7 +19,8 @@ using namespace std;
 #define BUF_SIZE 1024
 
 char message[BUF_SIZE];
-
+char ox[10];
+char ran_pwd[4];
 void finish_with_error(MYSQL *mysql){
 						fprintf(stderr, "%s\n", mysql_error(mysql));
 						mysql_close(mysql);
@@ -36,7 +35,6 @@ int main(int argc, char *argv[])
 void menu_num(int menu);
 
     MYSQL* mysql;
-	char sql[1024];
     MYSQL_RES* result;
     MYSQL_ROW row;
     char str1[1024], str2[1024];
@@ -47,19 +45,14 @@ void menu_num(int menu);
 	char b[10];
 	int num1, num2, num3, num4;
 	char num[100];
-	char ran_pwd[4];
 	int num_fields;
     int i;
-
-
-int sock;
-char menu[100];
-char pwd[10];
-char ox[10];
-char id[10];
-char id_pwd[10];
-char time[100];
-int n1=0;
+    int sock;
+    char menu[100];
+    char pwd[10];
+    
+    char id[10];
+    char id_pwd[10];
 
 
 string str;
@@ -105,7 +98,7 @@ struct sockaddr_in serv_adr;
         // write(sock,menu,strlen(menu));
         // str_len=read(sock,menu,BUF_SIZE-1);
         while(1){
-        fputs(" 1.계정 생성 \n 2. 로그인 \n 3.랜덤 비밀번호 생성   \n 4.로그 기록 보기 \n 5.계정 정보 보기 \n메뉴 선택:", stdout);
+        fputs(" 1.계정 생성 \n 2. 로그인 \n 3.랜덤 비밀번호 생성   \n 4.로그 기록 보기 \n 5.계정 정보 보기 \n 6.계정 비밀번호 변경 \n 7.계정 삭제 \n메뉴 선택:", stdout);
 
 
         
@@ -213,8 +206,7 @@ struct sockaddr_in serv_adr;
 							printf("\n");
 							
 						}
-
-						mysql_free_result(result);
+							
 					cout<<" endl"<<endl;
                
 
@@ -230,7 +222,8 @@ struct sockaddr_in serv_adr;
 
 
             
-        case '5':   
+        case '5':   //암호 판별
+            
             if(mysql_query(mysql,"SELECT * FROM testdb"))
                 {
                     finish_with_error(mysql);
@@ -257,6 +250,34 @@ struct sockaddr_in serv_adr;
 
             cout << "endl" <<endl;
                     
+            break;
+        case '6' :  //계정 비밀번호 변경
+
+            fputs("변경할 계정 id :  ", stdout);
+            fgets(id, BUF_SIZE, stdin);
+            write(sock,id,strlen(id));
+        
+            fputs("변경할 비밀번호 :  ", stdout);
+            fgets(id_pwd, BUF_SIZE, stdin);
+            write(sock,id_pwd,strlen(id));
+
+
+            read(sock, ox, BUF_SIZE-1);
+            if(*ox=='1'){
+                cout<<" 성공  "<<ox<<endl;
+            }else{
+                cout<<" 실패 "<<ox<<endl;
+            }
+            
+            break;
+
+        case '7' :  // 계정 삭제
+
+            fputs(" id :  ", stdout);
+            fgets(id, BUF_SIZE, stdin);
+            write(sock,id,strlen(id));
+        
+
             break;
 
         case '9': 
